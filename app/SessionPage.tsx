@@ -7,7 +7,7 @@ import Transcript, { Turn } from '@/components/Transcript';
 import MicButton from '@/components/MicButton';
 import { useSpeechRecognition } from '@/lib/speech';
 
-type SessionStatus = 'loading' | 'ready' | 'speaking' | 'listening' | 'thinking' | 'error';
+type SessionStatus = 'idle' | 'loading' | 'ready' | 'speaking' | 'listening' | 'thinking' | 'error';
 
 const DEFAULT_PROGRAM = process.env.NEXT_PUBLIC_DEFAULT_PROGRAM ?? 'AIX';
 const DEFAULT_PERSONA = process.env.NEXT_PUBLIC_DEFAULT_PERSONA ?? 'Alex';
@@ -18,6 +18,7 @@ function buildGreeting(university: string, className: string, program: string, p
 
 function statusLabel(status: SessionStatus): string {
   switch (status) {
+    case 'idle': return '';
     case 'loading': return 'Initializing...';
     case 'speaking': return 'Alex is speaking...';
     case 'listening': return 'Listening...';
@@ -79,7 +80,8 @@ export default function SessionPage() {
   const persona = searchParams.get('persona') ?? DEFAULT_PERSONA;
 
   const threadId = useRef<string>('');
-  const [status, setStatus] = useState<SessionStatus>('loading');
+  const [status, setStatus] = useState<SessionStatus>('idle');
+  const [started, setStarted] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const isProcessing = useRef(false);
@@ -148,6 +150,7 @@ export default function SessionPage() {
   }, [isListening]);
 
   useEffect(() => {
+    if (!started) return;
     let cancelled = false;
 
     async function runGreeting() {
@@ -157,6 +160,7 @@ export default function SessionPage() {
         return;
       }
 
+      setStatus('loading');
       const greeting = buildGreeting(university, className, program, persona);
       setTurns([{ role: 'alex', text: greeting }]);
       setStatus('speaking');
@@ -167,17 +171,12 @@ export default function SessionPage() {
         await speakFallback(greeting);
       }
 
-      if (!cancelled) {
-        setStatus('ready');
-      }
+      if (!cancelled) setStatus('ready');
     }
 
     runGreeting();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => { cancelled = true; };
+  }, [started]);
 
   function handleMicClick() {
     if (status !== 'ready') return;
@@ -185,6 +184,46 @@ export default function SessionPage() {
   }
 
   const showMic = status === 'ready' || status === 'listening';
+
+  if (!started) {
+    return (
+      <main
+        className="min-h-screen flex flex-col items-center justify-center gap-8 px-4"
+        style={{ backgroundColor: '#0a0a0f' }}
+      >
+        {university && (
+          <p className="text-xs font-mono uppercase tracking-[0.25em]" style={{ color: '#4b5563' }}>
+            {university}
+          </p>
+        )}
+        {className && (
+          <p className="text-sm font-mono tracking-wide" style={{ color: '#6b7280' }}>
+            {className}
+          </p>
+        )}
+        <VoiceOrb state="idle" />
+        <button
+          onClick={() => setStarted(true)}
+          className="mt-4 px-8 py-3 rounded-full text-sm font-mono uppercase tracking-widest transition-all duration-200"
+          style={{
+            border: '1px solid #374151',
+            color: '#9ca3af',
+            backgroundColor: 'transparent',
+          }}
+          onMouseEnter={e => {
+            (e.target as HTMLButtonElement).style.borderColor = '#7c3aed';
+            (e.target as HTMLButtonElement).style.color = '#a78bfa';
+          }}
+          onMouseLeave={e => {
+            (e.target as HTMLButtonElement).style.borderColor = '#374151';
+            (e.target as HTMLButtonElement).style.color = '#9ca3af';
+          }}
+        >
+          Tap to Begin
+        </button>
+      </main>
+    );
+  }
 
   return (
     <main
