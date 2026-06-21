@@ -78,11 +78,17 @@ export default function SessionPage() {
   const program = searchParams.get('program') ?? DEFAULT_PROGRAM;
   const persona = searchParams.get('persona') ?? DEFAULT_PERSONA;
 
-  const threadId = useRef<string>(crypto.randomUUID());
+  const threadId = useRef<string>('');
   const [status, setStatus] = useState<SessionStatus>('loading');
   const [turns, setTurns] = useState<Turn[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const isProcessing = useRef(false);
+
+  useEffect(() => {
+    if (!threadId.current) {
+      threadId.current = crypto.randomUUID();
+    }
+  }, []);
 
   const context = useRef({ university, className, program, persona });
   context.current = { university, className, program, persona };
