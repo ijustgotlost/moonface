@@ -2,40 +2,26 @@
 
 import { useCallback, useRef, useState } from 'react';
 
-type SpeechRecognitionType = typeof window extends { SpeechRecognition: infer T } ? T : never;
+type SR = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onresult: ((event: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+};
 
 declare global {
   interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
-  interface SpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    start(): void;
-    stop(): void;
-    onresult: ((event: SpeechRecognitionEvent) => void) | null;
-    onerror: ((event: Event) => void) | null;
-    onend: ((event: Event) => void) | null;
-  }
-  interface SpeechRecognitionEvent extends Event {
-    results: SpeechRecognitionResultList;
-  }
-  interface SpeechRecognitionResultList {
-    [index: number]: SpeechRecognitionResult;
-  }
-  interface SpeechRecognitionResult {
-    [index: number]: SpeechRecognitionAlternative;
-  }
-  interface SpeechRecognitionAlternative {
-    transcript: string;
-    confidence: number;
+    SpeechRecognition?: new () => SR;
+    webkitSpeechRecognition?: new () => SR;
   }
 }
 
 export function useSpeechRecognition(onResult: (transcript: string) => void) {
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<SR | null>(null);
   const [isListening, setIsListening] = useState(false);
 
   const startListening = useCallback(() => {
@@ -51,7 +37,7 @@ export function useSpeechRecognition(onResult: (transcript: string) => void) {
     recognition.interimResults = false;
     recognition.lang = 'en-US';
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event) => {
       const transcript = event.results[0]?.[0]?.transcript ?? '';
       if (transcript) {
         onResult(transcript);

@@ -3,10 +3,8 @@ import path from 'path';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  experimental: {
-    turbopack: {
-      root: path.resolve(__dirname),
-    },
+  turbopack: {
+    root: path.resolve(__dirname),
   },
 };
 
