@@ -17,14 +17,15 @@ export async function callMastraAgent(
   threadId: string,
   context: ChatContext,
 ): Promise<string> {
-  const systemPrefix = `You are ${context.persona}, an AI onboarding assistant for the ${context.program} program. You are currently onboarding a new student for ${context.className} at ${context.university}. Be warm, concise, and professional. Keep responses under 3 sentences unless the student needs more detail. You are speaking aloud — avoid markdown, bullet points, or lists.`;
+  const contextNote = context.university && context.className
+    ? `[Context: onboarding for ${context.className} at ${context.university}] `
+    : '';
 
   const res = await fetch(`${MASTRA_BASE_URL}/api/agents/${agentId}/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      messages: [{ role: 'user', content: message }],
-      instructions: systemPrefix,
+      messages: [{ role: 'user', content: `${contextNote}${message}` }],
       threadId,
       resourceId: threadId,
     }),
